@@ -19,6 +19,9 @@ namespace ReflectionHomeWork
     /// </summary>
     public class Class2String
     {
+        const string FIELD = "F";
+        const string PROPERTIES = "P";
+        const string NULL = "[NULL]";
         public object Deserialize(string value)
         {
 
@@ -27,20 +30,19 @@ namespace ReflectionHomeWork
 
             Type type = Type.GetType(className);
             object o = Activator.CreateInstance(type);
-            for (var i = 1; i < classSceleton.Length; i+=4)
+            for (var i = 1; i < classSceleton.Length; i+=3)
             {
                 string prefix = classSceleton[i]??string.Empty;
-                string strType = classSceleton [i+1];
-                string name = classSceleton [i+2];
-                string strValue = "[NULL]".Equals(classSceleton[i + 3]) ? null : classSceleton[i + 3].Replace("?,", ",");
+                string name = classSceleton [i+1];
+                string strValue = NULL.Equals(classSceleton[i + 2]) ? null : classSceleton[i + 2].Replace("?,", ",");
 
                 switch (prefix)
                 {
-                case "_fld_":
+                case FIELD:
                     FieldInfo fInfo = type.GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
                     fInfo.SetValue(o, (strValue == null)?null:Convert.ChangeType(strValue, fInfo.FieldType));
                     break;
-                case "_prp_":
+                case PROPERTIES:
                         PropertyInfo pInfo = type.GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
                         pInfo.SetValue(o, (strValue == null) ? null : Convert.ChangeType(strValue, pInfo.PropertyType), null);
                 break;
@@ -53,9 +55,9 @@ namespace ReflectionHomeWork
         }
         /// <summary>
         /// простой сериализатор для класов с пустым конструктором и полями/свойствами из простых типов
-        /// класс- в строку, разделитель ",".Формат: тип, пары ключ-значение. ключ|значение ,   Формат ключа  префмкс( _fld_ - поля, _prp_ - свойства):тип:имя
+        /// класс- в строку, разделитель ",".Формат, тип, пары ключ-значение. ключ,значение ,   Формат ключа  префмкс( F - поля, P - свойства),тип,имя
         /// Пример:
-        /// MyClass,_fld_,String,Name,Ну?, вот такой набор :|#$%%\",_prp_,String,Name2,Ну?, вот такой и такой :|#$%%\"
+        /// MyClass,F,i1,1,F,i2,2,F,i3,3,F,i4,4,F,i5,5,P,i6,99"
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
@@ -66,29 +68,27 @@ namespace ReflectionHomeWork
             var objType = obj.GetType();
             stringBuilder.Append(objType.FullName);
             var objFields = objType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            var prefix = "_fld_";
+            var prefix = FIELD;
             foreach (var field in objFields)
             {
                 stringBuilder.Append(",");
-                AddString(stringBuilder,prefix, field.FieldType, field.Name, field.GetValue(obj));
+                AddString(stringBuilder,prefix,  field.Name, field.GetValue(obj));
             }
-            prefix = "_prp_";
+            prefix = PROPERTIES;
 
             var objProperties = objType.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             foreach (var prop in objProperties)
             {
                 stringBuilder.Append(",");
-                AddString(stringBuilder,prefix, prop.PropertyType, prop.Name, prop.GetValue(obj));
+                AddString(stringBuilder,prefix,  prop.Name, prop.GetValue(obj));
             }
 
             return stringBuilder.ToString();
         }
-        private void AddString(StringBuilder stringBuilder, string prefix, Type typeField, string key, object? value)
+        private void AddString(StringBuilder stringBuilder, string prefix, string key, object? value)
         {
             var strValue = value == null ? null : value.ToString();
             stringBuilder.Append(prefix);
-            stringBuilder.Append(",");
-            stringBuilder.Append(typeField.FullName);
             stringBuilder.Append(",");
             stringBuilder.Append(key);
             stringBuilder.Append(",");
@@ -103,7 +103,7 @@ namespace ReflectionHomeWork
             }
             else
             {
-                stringBuilder.Append("[NULL]");
+                stringBuilder.Append(NULL);
             }
         }
     }
